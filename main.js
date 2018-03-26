@@ -45,3 +45,25 @@ onEachFrame(dt => {
   })
   candle.style.boxShadow = particles.map(getParticleShadow).join()
 })
+function toggleFullScreen (targetElement) {
+  if (!document.mozFullScreen && !document.webkitFullScreen) {
+    if (targetElement.mozRequestFullScreen) {
+      targetElement.mozRequestFullScreen()
+    } else {
+      targetElement.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT)
+    }
+  } else {
+    if (document.mozCancelFullScreen) {
+      document.mozCancelFullScreen()
+    } else {
+      document.webkitCancelFullScreen()
+    }
+  }
+}
+
+screen.lockOrientationUniversal = screen.lockOrientation || screen.mozLockOrientation || screen.msLockOrientation
+document.documentElement.addEventListener('click', () => {
+  toggleFullScreen(document.documentElement)
+  screen.lockOrientationUniversal('portrait-primary')
+})
+
