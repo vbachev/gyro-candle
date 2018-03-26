@@ -1,7 +1,8 @@
 let particles = []
 const delay = 30
+const gyroNorm = new GyroNorm()
 const gravity = new Vector(0, 1)
-const candle = document.querySelector(".candle")
+const candle = document.querySelector('.candle')
 
 function onEachFrame(callback, oldTime = 0) {
   requestAnimationFrame(newTime => {
@@ -17,6 +18,11 @@ function addParticle() {
     s: 10,
     v: 150
   })
+}
+
+function updateGravity (angle) {
+  const newDown = new Vector(Math.cos(angle), Math.sin(angle))
+  gravity.mult(0).add(newDown)
 }
 
 function getParticleShadow(particle) {
@@ -35,16 +41,23 @@ function updateParticle(particle, dt) {
   particle.s -= 5 * dt / 1000
 }
 
-setInterval(addParticle, delay)
+function onEachMeasurement (callback) {
+  gyroNorm
+    .init({
+      logger: data => console.log(data)
+    })
+    .then(() => gyroNorm.start(callback))
+    .catch(e => console.error('DeviceOrientation or DeviceMotion is not supported by the browser or device.'))
+}
 
-onEachFrame(dt => {
-  particles = particles.filter(p => {
-    if (p.t < 0) return false
-    updateParticle(p, dt)
-    return true
-  })
-  candle.style.boxShadow = particles.map(getParticleShadow).join()
-})
+function getOrientation () {
+  return screen.msOrientation || (screen.orientation || screen.mozOrientation || {}).type
+}
+
+function toRadian (deg) {
+  return deg * Math.PI / 180
+}
+
 function toggleFullScreen (targetElement) {
   if (!document.mozFullScreen && !document.webkitFullScreen) {
     if (targetElement.mozRequestFullScreen) {
@@ -60,6 +73,34 @@ function toggleFullScreen (targetElement) {
     }
   }
 }
+
+setInterval(addParticle, delay)
+
+onEachFrame(dt => {
+  particles = particles.filter(p => {
+    if (p.t < 0) return false
+    updateParticle(p, dt)
+    return true
+  })
+  candle.style.boxShadow = particles.map(getParticleShadow).join()
+})
+
+onEachMeasurement(data => {
+  const orientation = getOrientation()
+  let metric = 'alpha'
+  let offset = 90
+  let multiplier = 1
+  if (orientation === 'landscape-primary') {
+    if (data.do.gamma < 0) {
+      multiplier = -1
+    }
+    metric = 'beta'
+    offset = 270
+  } else if (orientation === 'landscape-secondary') {
+    metric = 'beta'
+  }
+  updateGravity(toRadian((data.do[metric] + offset) * multiplier))
+})
 
 screen.lockOrientationUniversal = screen.lockOrientation || screen.mozLockOrientation || screen.msLockOrientation
 document.documentElement.addEventListener('click', () => {
