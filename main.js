@@ -20,9 +20,10 @@ function addParticle() {
   })
 }
 
-function updateGravity (angle) {
-  const newDown = new Vector(Math.cos(angle), Math.sin(angle))
-  gravity.mult(0).add(newDown)
+function updateGravity (rotation, movement) {
+  const sideForce = new Vector(...movement)
+  const downForce = new Vector(Math.cos(rotation), Math.sin(rotation))
+  gravity.mult(0).add(downForce).add(sideForce)
 }
 
 function getParticleShadow(particle) {
@@ -99,7 +100,13 @@ onEachMeasurement(data => {
   } else if (orientation === 'landscape-secondary') {
     metric = 'beta'
   }
-  updateGravity(toRadian((data.do[metric] + offset) * multiplier))
+
+  const rotation = toRadian((data.do[metric] + offset) * multiplier)
+  const movement = [
+    data.dm.x * 1,
+    data.dm.y * -1
+  ]
+  updateGravity(rotation, movement)
 })
 
 screen.lockOrientationUniversal = screen.lockOrientation || screen.mozLockOrientation || screen.msLockOrientation
